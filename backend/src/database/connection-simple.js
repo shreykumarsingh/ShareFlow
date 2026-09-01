@@ -64,13 +64,16 @@ const query = async (sql, params = []) => {
       download_count: 0,
       is_public: params[8] !== false,
       password_hash: params[9],
-      expires_at: params[10],
+      text_content: params[10] || null,
+      custom_slug: params[11] || null,
+      is_edit_locked: params[12] || false,
+      expires_at: params[13] || null,
       created_at: new Date(),
       updated_at: new Date(),
       last_accessed_at: null
     };
     files.push(file);
-    console.log('File created with ID:', file.id);
+    console.log('File created with ID:', file.id, 'Text content saved:', file.text_content ? 'Yes' : 'No');
     console.log('Total files in database:', files.length);
     return { rows: [file] };
   }

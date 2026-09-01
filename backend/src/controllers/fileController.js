@@ -23,33 +23,64 @@ const getCleanIp = (req) => {
   return ip || null;
 };
 
-// Upload single file
+// Upload single file or text note
 const uploadFile = async (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.file && (!req.body.text_content || req.body.text_content.trim() === '')) {
+      return res.status(400).json({ error: 'No file or text note provided' });
     }
 
-    // Validate file
-    const validation = validateFileUpload(req.file);
-    if (!validation.isValid) {
-      return res.status(400).json({ 
-        error: 'File validation failed',
-        details: validation.errors
-      });
-    }
+    let originalName;
+    let storedName;
+    let mimeType;
+    let sizeBytes;
+    let storageType = 'local';
+    let storagePath = '';
 
-    // Sanitize filename
-    const originalName = sanitizeFilename(req.file.originalname);
-    const storedName = generateUniqueFilename(originalName);
+    if (req.file) {
+      // Validate file
+      const validation = validateFileUpload(req.file);
+      if (!validation.isValid) {
+        return res.status(400).json({ 
+          error: 'File validation failed',
+          details: validation.errors
+        });
+      }
 
-    // Store file
-    const storageResult = await storageManager.storeFile(req.file, storedName);
-    if (!storageResult.success) {
-      return res.status(500).json({
-        error: 'Failed to store file',
-        details: storageResult.error
-      });
+      // Sanitize filename
+      originalName = sanitizeFilename(req.file.originalname);
+      storedName = generateUniqueFilename(originalName);
+
+      // Store file
+      const storageResult = await storageManager.storeFile(req.file, storedName);
+      if (!storageResult.success) {
+        return res.status(500).json({
+          error: 'Failed to store file',
+          details: storageResult.error
+        });
+      }
+
+      storageType = storageResult.storageType;
+      storagePath = storageResult.storagePath;
+      mimeType = req.file.mimetype;
+      sizeBytes = req.file.size;
+    } else {
+      // Text note only
+      originalName = req.body.original_name || 'shared_note.txt';
+      storedName = generateUniqueFilename(originalName);
+      mimeType = 'text/plain';
+      sizeBytes = Buffer.byteLength(req.body.text_content, 'utf8');
+
+      // Create physical note file in local uploads
+      const fs = require('fs');
+      const path = require('path');
+      const localUploadDir = process.env.UPLOAD_DIR || './uploads';
+      if (!fs.existsSync(localUploadDir)) {
+        fs.mkdirSync(localUploadDir, { recursive: true });
+      }
+      const notePath = path.join(localUploadDir, storedName);
+      fs.writeFileSync(notePath, req.body.text_content, 'utf8');
+      storagePath = path.relative(process.cwd(), notePath);
     }
 
     // Get sanitized user IP
@@ -59,12 +90,12 @@ const uploadFile = async (req, res, next) => {
     const fileRecord = await File.create({
       original_name: originalName,
       stored_name: storedName,
-      mime_type: req.file.mimetype,
-      size_bytes: req.file.size,
+      mime_type: mimeType,
+      size_bytes: sizeBytes,
       user_id: req.body.user_id || (req.user ? req.user.id : null),
       upload_ip: uploadIp,
-      storage_type: storageResult.storageType,
-      storage_path: storageResult.storagePath,
+      storage_type: storageType,
+      storage_path: storagePath,
       is_public: req.body.is_public !== 'false',
       password: req.body.password || null,
       text_content: req.body.text_content || null,

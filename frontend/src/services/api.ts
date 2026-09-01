@@ -91,12 +91,14 @@ class ApiService {
   }
 
   async uploadFile(
-    file: File,
+    file?: File | null,
     options: UploadOptions = {},
     onProgress?: (progress: number) => void
   ): Promise<UploadResponse> {
     const formData = new FormData();
-    formData.append('file', file);
+    if (file) {
+      formData.append('file', file);
+    }
     
     if (options.is_public !== undefined) {
       formData.append('is_public', options.is_public.toString());
@@ -139,9 +141,9 @@ class ApiService {
         const uploadHistory = JSON.parse(localStorage.getItem('recent_uploads') || '[]');
         uploadHistory.push({
           id: response.data.file.id,
-          original_name: file.name,
-          mime_type: file.type,
-          size_bytes: file.size,
+          original_name: file ? file.name : response.data.file.original_name,
+          mime_type: file ? file.type : response.data.file.mime_type,
+          size_bytes: file ? file.size : 0,
           size_formatted: response.data.file.size_formatted,
           created_at: response.data.file.created_at
         });

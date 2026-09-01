@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
-import { Link2, Shield, Clock, CheckCircle, Copy, Eye, Upload, Zap, Sparkles } from 'lucide-react';
+import { Link2, Shield, Clock, CheckCircle, Copy, Eye, Zap, Sparkles, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DragDropZone from '../components/Upload/DragDropZone';
 import apiService from '../services/api';
@@ -11,6 +11,8 @@ const HomePage: React.FC = () => {
   const [uploadStates, setUploadStates] = useState<FileUploadState[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [expiresInHours, setExpiresInHours] = useState<number>(168);
+  const [showTextNotes, setShowTextNotes] = useState(false);
+  const [textContent, setTextContent] = useState('');
 
   const handleFilesSelected = async (selectedFiles: File[]) => {
     let files = selectedFiles;
@@ -43,6 +45,7 @@ const HomePage: React.FC = () => {
           file,
           {
             user_id: user?.id,
+            text_content: textContent.trim() ? textContent : undefined,
             expires_in_hours: expiresInHours
           },
           (percentage) => {
@@ -98,6 +101,45 @@ const HomePage: React.FC = () => {
     }
 
     setIsUploading(false);
+  };
+
+  const handleTextNoteOnlySubmit = async () => {
+    if (!textContent.trim()) {
+      toast.error('Please enter some text notes to share!');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const response: UploadResponse = await apiService.uploadFile(
+        null,
+        {
+          user_id: user?.id,
+          text_content: textContent.trim(),
+          expires_in_hours: expiresInHours
+        }
+      );
+
+      const completedState: FileUploadState = {
+        file: new File([], response.file.original_name),
+        progress: { loaded: response.file.size_bytes, total: response.file.size_bytes, percentage: 100 },
+        status: 'completed',
+        result: {
+          file: response.file,
+          shareable_link: response.shareable_link,
+          can_preview: response.can_preview,
+        },
+      };
+
+      setUploadStates((prev) => [completedState, ...prev]);
+      setTextContent('');
+      toast.success('Text note created & share link generated!');
+    } catch (error: any) {
+      console.error('Text note upload error:', error);
+      toast.error(error.message || 'Failed to share text note');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -161,13 +203,50 @@ const HomePage: React.FC = () => {
         {/* Beautiful Light Upload Card Container */}
         <div className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.06)] p-8 sm:p-12 mb-14 border border-slate-100 relative overflow-hidden">
           <div className="relative z-10">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg shadow-blue-500/25 mb-4 text-white">
-                <Upload className="w-8 h-8" />
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+              <div className="text-center sm:text-left">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mb-1 tracking-tight">Upload Files or Share Notes</h2>
+                <p className="text-xs sm:text-sm text-slate-500">Drag & drop files, attach notes, or share text snippets directly</p>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2 tracking-tight">Upload Your Files</h2>
-              <p className="text-xs sm:text-sm text-slate-500">Drag & drop files or click to browse • Max 5 files • 100 MB per file</p>
+
+              <button
+                onClick={() => setShowTextNotes(!showTextNotes)}
+                className="flex items-center space-x-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded-xl text-xs font-bold transition-all shadow-sm"
+              >
+                <FileText className="h-4 w-4" />
+                <span>{showTextNotes ? 'Hide Text Notes' : '+ Add Text Note / Code'}</span>
+              </button>
             </div>
+
+            {/* Expandable Text Notes Input Area */}
+            {showTextNotes && (
+              <div className="mb-6 p-5 bg-slate-50 border border-slate-200 rounded-2xl animate-fade-in-up">
+                <label className="flex items-center text-xs font-bold text-slate-800 mb-2">
+                  <FileText className="w-4 h-4 text-blue-600 mr-2" />
+                  <span>Text Notes / Code Snippets</span>
+                </label>
+                <textarea
+                  value={textContent}
+                  onChange={(e) => setTextContent(e.target.value)}
+                  placeholder="Type or paste text notes, instructions, or code snippets here. You can attach it to files or click 'Share Note Link Only' below..."
+                  rows={4}
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-xs text-slate-900 placeholder-slate-400 resize-y shadow-sm mb-3"
+                />
+                {textContent.trim() && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleTextNoteOnlySubmit}
+                      disabled={isUploading}
+                      className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-all disabled:opacity-50"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>Generate Share Link for Text Note Only</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Auto Expiry Customizer Bar */}
             <div className="mb-6 bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-inner">

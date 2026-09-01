@@ -96,6 +96,57 @@ const DashboardPage: React.FC = () => {
     setIsUploading(false);
   };
 
+  const handleTextNoteOnlySubmit = async () => {
+    if (!textContent.trim()) {
+      toast.error('Please enter some text notes to share!');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const response: UploadResponse = await apiService.uploadFile(
+        null,
+        {
+          user_id: user?.id,
+          text_content: textContent.trim(),
+          expires_in_hours: expiresInHours
+        }
+      );
+
+      const completedState: FileUploadState = {
+        file: new File([], response.file.original_name),
+        progress: { loaded: response.file.size_bytes, total: response.file.size_bytes, percentage: 100 },
+        status: 'completed',
+        result: {
+          file: response.file,
+          shareable_link: response.shareable_link,
+          can_preview: response.can_preview,
+        },
+      };
+
+      setAllUploadedFiles((prev) => [completedState, ...prev]);
+      setTextContent('');
+
+      // Save local history
+      const recentFiles = JSON.parse(localStorage.getItem('uploadedFilesHistory') || '[]');
+      recentFiles.unshift({
+        id: response.file.id,
+        original_name: response.file.original_name,
+        shareable_link: response.shareable_link,
+        size_formatted: response.file.size_formatted,
+        created_at: response.file.created_at
+      });
+      localStorage.setItem('uploadedFilesHistory', JSON.stringify(recentFiles.slice(0, 50)));
+
+      toast.success('Text note created & share link generated!');
+    } catch (error: any) {
+      console.error('Text note upload error:', error);
+      toast.error(error.message || 'Failed to share text note');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleDeleteFile = async (fileId: string, fileName: string) => {
     if (!window.confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
       return;
@@ -235,15 +286,28 @@ const DashboardPage: React.FC = () => {
             <div className="mb-6 p-6 bg-slate-50 rounded-2xl border border-slate-200 animate-fade-in-up">
               <label className="flex items-center text-xs font-bold text-slate-800 mb-2">
                 <FileText className="w-4 h-4 text-blue-600 mr-2" />
-                <span>Text Notes / Code Snippets (Optional)</span>
+                <span>Text Notes / Code Snippets</span>
               </label>
               <textarea
                 value={textContent}
                 onChange={(e) => setTextContent(e.target.value)}
-                placeholder="Paste notes, instructions, or code snippets to share together with your uploaded files..."
+                placeholder="Paste notes, instructions, or code snippets to share together with your uploaded files, or click 'Share Note Link Only' below..."
                 rows={4}
-                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-xs text-slate-900 placeholder-slate-400 resize-y shadow-sm"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-xs text-slate-900 placeholder-slate-400 resize-y shadow-sm mb-3"
               />
+              {textContent.trim() && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleTextNoteOnlySubmit}
+                    disabled={isUploading}
+                    className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-all disabled:opacity-50"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Generate Share Link for Text Note Only</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
