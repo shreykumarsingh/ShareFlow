@@ -83,6 +83,15 @@ app.use(async (req, res, next) => {
   }
 });
 
+// URL normalization for Vercel serverless rewrites
+app.use((req, res, next) => {
+  if (req.url.startsWith('/api/index.js')) {
+    req.url = req.url.replace('/api/index.js', '') || '/';
+    if (!req.url.startsWith('/')) req.url = '/' + req.url;
+  }
+  next();
+});
+
 // API routes (support both /api/* and direct /* paths for Vercel rewrites)
 app.use('/api/files', fileRoutes);
 app.use('/files', fileRoutes);
