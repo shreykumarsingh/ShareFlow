@@ -14,6 +14,38 @@ const HomePage: React.FC = () => {
   const [showTextNotes, setShowTextNotes] = useState(true);
   const [textContent, setTextContent] = useState('');
 
+  React.useEffect(() => {
+    try {
+      const savedHistory = JSON.parse(localStorage.getItem('recent_uploads') || '[]');
+      if (Array.isArray(savedHistory) && savedHistory.length > 0) {
+        const savedStates: FileUploadState[] = savedHistory.map((item: any) => ({
+          file: new File([], item.original_name || 'shared_note.txt'),
+          progress: { loaded: item.size_bytes || 0, total: item.size_bytes || 0, percentage: 100 },
+          status: 'completed',
+          result: {
+            file: {
+              id: item.id,
+              original_name: item.original_name || 'shared_note.txt',
+              mime_type: item.mime_type || 'text/plain',
+              size_bytes: item.size_bytes || 0,
+              size_formatted: item.size_formatted || '0 Bytes',
+              text_content: item.text_content,
+              download_count: 0,
+              is_public: true,
+              is_password_protected: false,
+              is_expired: false,
+              created_at: item.created_at || new Date().toISOString(),
+              expires_at: item.expires_at
+            },
+            shareable_link: item.shareable_link || `${window.location.origin}/download/${item.id}`,
+            can_preview: true
+          }
+        }));
+        setUploadStates(savedStates);
+      }
+    } catch (e) {}
+  }, []);
+
   const handleFilesSelected = async (selectedFiles: File[]) => {
     let files = selectedFiles;
     if (files.length > 5) {

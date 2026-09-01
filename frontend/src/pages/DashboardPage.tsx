@@ -16,25 +16,58 @@ const DashboardPage: React.FC = () => {
 
   React.useEffect(() => {
     const fetchUserFiles = async () => {
-      if (!user?.id) return;
+      if (user?.id) {
+        try {
+          const response = await apiService.getUserFiles(1, 50, user.id);
+          if (response.success && response.files) {
+            const loadedStates: FileUploadState[] = response.files.map((fileMeta) => ({
+              file: new File([], fileMeta.original_name),
+              progress: { loaded: fileMeta.size_bytes, total: fileMeta.size_bytes, percentage: 100 },
+              status: 'completed',
+              result: {
+                file: fileMeta,
+                shareable_link: `${window.location.origin}/download/${fileMeta.custom_slug || fileMeta.id}`,
+                can_preview: true
+              }
+            }));
+            setAllUploadedFiles(loadedStates);
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to fetch user files:', error);
+        }
+      }
+
+      // Fallback for guest uploads or offline storage
       try {
-        const response = await apiService.getUserFiles(1, 50, user.id);
-        if (response.success && response.files) {
-          const loadedStates: FileUploadState[] = response.files.map((fileMeta) => ({
-            file: new File([], fileMeta.original_name),
-            progress: { loaded: fileMeta.size_bytes, total: fileMeta.size_bytes, percentage: 100 },
+        const savedHistory = JSON.parse(localStorage.getItem('recent_uploads') || '[]');
+        if (Array.isArray(savedHistory) && savedHistory.length > 0) {
+          const savedStates: FileUploadState[] = savedHistory.map((item: any) => ({
+            file: new File([], item.original_name || 'shared_note.txt'),
+            progress: { loaded: item.size_bytes || 0, total: item.size_bytes || 0, percentage: 100 },
             status: 'completed',
             result: {
-              file: fileMeta,
-              shareable_link: `${window.location.origin}/download/${fileMeta.custom_slug || fileMeta.id}`,
+              file: {
+                id: item.id,
+                original_name: item.original_name || 'shared_note.txt',
+                mime_type: item.mime_type || 'text/plain',
+                size_bytes: item.size_bytes || 0,
+                size_formatted: item.size_formatted || '0 Bytes',
+                text_content: item.text_content,
+                download_count: 0,
+                is_public: true,
+                is_password_protected: false,
+                is_expired: false,
+                created_at: item.created_at || new Date().toISOString(),
+                expires_at: item.expires_at
+              },
+              shareable_link: item.shareable_link || `${window.location.origin}/download/${item.id}`,
               can_preview: true
             }
           }));
-          setAllUploadedFiles(loadedStates);
+          setAllUploadedFiles(savedStates);
         }
-      } catch (error) {
-        console.error('Failed to fetch user files from Supabase:', error);
-      }
+      } catch (e) {}
     };
 
     fetchUserFiles();
