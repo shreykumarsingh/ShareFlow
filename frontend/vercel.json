@@ -1,4 +1,7 @@
 {
+  "cleanUrls": true,
+  "framework": "create-react-app",
+  "outputDirectory": "build",
   "rewrites": [
     {
       "source": "/(.*)",
