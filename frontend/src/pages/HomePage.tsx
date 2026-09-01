@@ -127,7 +127,7 @@ const HomePage: React.FC = () => {
         <div className="text-center mb-14 animate-fade-in-up">
           <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-200/80 text-blue-700 text-xs font-bold uppercase tracking-wider mb-6 shadow-sm">
             <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            <span>Fast • Secure • No Registration Required</span>
+            <span>Fast & Secure Encrypted Sharing</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-black text-slate-900 leading-[1.15] mb-6 tracking-tight">
@@ -139,13 +139,13 @@ const HomePage: React.FC = () => {
 
           <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto mb-8 leading-relaxed font-normal">
             Upload files, attach notes, and generate instant encrypted share links. <br className="hidden sm:inline" />
-            Works on any device without mandatory sign-up. ⚡
+            Works seamlessly across all your devices. ⚡
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-semibold text-slate-700">
             <div className="flex items-center space-x-2 bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-full border border-slate-200 shadow-sm">
               <Shield className="w-4 h-4 text-emerald-500" />
-              <span>AES-256 Encrypted</span>
+              <span>Secure SSL Encryption</span>
             </div>
             <div className="flex items-center space-x-2 bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-full border border-slate-200 shadow-sm">
               <Clock className="w-4 h-4 text-amber-500" />

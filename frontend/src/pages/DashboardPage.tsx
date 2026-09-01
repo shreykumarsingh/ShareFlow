@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { useUser, useClerk } from '@clerk/clerk-react';
-import { useNavigate } from 'react-router-dom';
-import { FileText, Upload, Download, Link2, LogOut, Copy, Eye, Trash2, LayoutDashboard, Clock } from 'lucide-react';
+import { useUser } from '@clerk/clerk-react';
+import { FileText, Upload, Download, Link2, Copy, Eye, Trash2, LayoutDashboard, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DragDropZone from '../components/Upload/DragDropZone';
 import apiService from '../services/api';
@@ -9,8 +8,6 @@ import { FileUploadState, UploadResponse } from '../types';
 
 const DashboardPage: React.FC = () => {
   const { user } = useUser();
-  const { signOut } = useClerk();
-  const navigate = useNavigate();
   const [isUploading, setIsUploading] = useState(false);
   const [allUploadedFiles, setAllUploadedFiles] = useState<FileUploadState[]>([]);
   const [showTextNotes, setShowTextNotes] = useState(false);
@@ -42,11 +39,6 @@ const DashboardPage: React.FC = () => {
 
     fetchUserFiles();
   }, [user?.id]);
-
-  const handleLogout = () => {
-    signOut();
-    navigate('/');
-  };
 
   const handleFilesSelected = async (selectedFiles: File[]) => {
     let files = selectedFiles;
@@ -146,7 +138,7 @@ const DashboardPage: React.FC = () => {
     <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* User Welcome Banner */}
-        <div className="bg-white rounded-3xl p-8 mb-8 border border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
+        <div className="bg-white rounded-3xl p-8 mb-8 border border-slate-100 flex items-center justify-between shadow-xl">
           <div className="flex items-center space-x-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-md">
               {user?.firstName ? user.firstName[0].toUpperCase() : '👤'}
@@ -160,14 +152,6 @@ const DashboardPage: React.FC = () => {
               </p>
             </div>
           </div>
-
-          <button
-            onClick={handleLogout}
-            className="flex items-center space-x-2 bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold transition-all"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>Sign Out</span>
-          </button>
         </div>
 
         {/* Dashboard Metrics Cards */}
