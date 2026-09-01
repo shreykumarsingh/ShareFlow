@@ -133,7 +133,7 @@ const HomePage: React.FC = () => {
           <h1 className="text-4xl sm:text-6xl font-black text-slate-900 leading-[1.15] mb-6 tracking-tight">
             Share Files & Notes <br className="hidden sm:inline" />
             <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Instantly & Beautifully
+              Instantly & Securely
             </span>
           </h1>
 
