@@ -128,7 +128,7 @@ const HomePage: React.FC = () => {
           )
         );
 
-        toast.error(`Failed to upload ${file.name}`);
+        toast.error(`Failed to upload ${file.name}: ${error.message || ''}`);
       }
     }
 

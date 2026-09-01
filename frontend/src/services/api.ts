@@ -161,7 +161,27 @@ class ApiService {
       return response.data;
     } catch (error: any) {
       console.error('❌ Upload: Error!', error);
-      const errorMessage = error?.response?.data?.error || error?.message || 'Upload failed';
+      let errorMessage = 'Upload failed';
+
+      if (error?.response?.status === 413) {
+        errorMessage = 'File too large for Vercel Serverless Function (Max 4.5 MB limit per request). Please upload a smaller file or text note.';
+      } else if (error?.response?.data) {
+        const data = error.response.data;
+        if (typeof data === 'string') {
+          errorMessage = data.includes('Payload Too Large') 
+            ? 'File too large for Vercel Serverless Function (Max 4.5 MB limit)'
+            : data;
+        } else if (Array.isArray(data.details)) {
+          errorMessage = `${data.error || 'Validation error'}: ${data.details.join(', ')}`;
+        } else if (data.details) {
+          errorMessage = `${data.error || 'Error'}: ${data.details}`;
+        } else if (data.error) {
+          errorMessage = data.error;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
       throw new Error(errorMessage);
     }
   }
