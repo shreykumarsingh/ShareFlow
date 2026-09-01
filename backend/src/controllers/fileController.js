@@ -298,10 +298,15 @@ const downloadFile = async (req, res, next) => {
       res.setHeader('Content-Disposition', `attachment; filename="${file.original_name}"`);
       res.setHeader('Content-Length', file.size_bytes);
 
-      // Stream file to response with error handler
+      // Stream file to response with error handler & database text_content fallback
       fileStream.on('error', (err) => {
         console.error('Stream reading error during download:', err);
         if (!res.headersSent) {
+          if (file.text_content) {
+            const buffer = Buffer.from(file.text_content, 'utf8');
+            res.setHeader('Content-Length', buffer.length);
+            return res.end(buffer);
+          }
           res.status(404).json({ error: 'File not found on storage server' });
         }
       });
@@ -309,6 +314,13 @@ const downloadFile = async (req, res, next) => {
 
     } catch (streamError) {
       console.error('File streaming error:', streamError);
+      if (file.text_content) {
+        const buffer = Buffer.from(file.text_content, 'utf8');
+        res.setHeader('Content-Type', file.mime_type || 'text/plain');
+        res.setHeader('Content-Disposition', `attachment; filename="${file.original_name}"`);
+        res.setHeader('Content-Length', buffer.length);
+        return res.end(buffer);
+      }
       return res.status(500).json({ error: 'Failed to retrieve file' });
     }
 
@@ -365,6 +377,11 @@ const previewFile = async (req, res, next) => {
       fileStream.on('error', (err) => {
         console.error('Stream reading error during preview:', err);
         if (!res.headersSent) {
+          if (file.text_content) {
+            const buffer = Buffer.from(file.text_content, 'utf8');
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+            return res.end(buffer);
+          }
           res.status(404).json({ error: 'File not found on storage server' });
         }
       });
@@ -372,6 +389,11 @@ const previewFile = async (req, res, next) => {
 
     } catch (streamError) {
       console.error('File streaming error:', streamError);
+      if (file.text_content) {
+        const buffer = Buffer.from(file.text_content, 'utf8');
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        return res.end(buffer);
+      }
       return res.status(500).json({ error: 'Failed to retrieve file' });
     }
 
