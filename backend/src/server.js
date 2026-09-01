@@ -8,11 +8,16 @@ const fs = require('fs');
 // Ensure backend .env is loaded regardless of process launch working directory
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-// Ensure upload directories exist
-const uploadDir = path.resolve(process.env.UPLOAD_DIR || path.join(__dirname, '../uploads'));
-const tempDir = path.join(uploadDir, 'temp');
-if (!fs.existsSync(tempDir)) {
-  fs.mkdirSync(tempDir, { recursive: true });
+const os = require('os');
+// Ensure upload directories exist safely
+const baseUploadDir = process.env.UPLOAD_DIR || (process.env.VERCEL ? os.tmpdir() : path.join(__dirname, '../uploads'));
+const tempDir = path.join(baseUploadDir, 'temp');
+try {
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+} catch (e) {
+  console.warn('Upload directory initialization warning:', e.message);
 }
 
 const { connectDatabase } = require('./database/connection');

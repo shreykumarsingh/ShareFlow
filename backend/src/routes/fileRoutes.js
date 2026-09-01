@@ -15,10 +15,23 @@ const {
 
 const router = express.Router();
 
+const os = require('os');
+const getTempDir = () => {
+  const targetDir = process.env.VERCEL ? os.tmpdir() : path.join(process.cwd(), 'uploads', 'temp');
+  try {
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+    return targetDir;
+  } catch (e) {
+    return os.tmpdir();
+  }
+};
+
 // Multer configuration for file upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/temp'); // Temporary location, will be moved by storage manager
+    cb(null, getTempDir());
   },
   filename: (req, file, cb) => {
     // Generate temporary filename
@@ -50,13 +63,6 @@ const upload = multer({
     cb(null, true);
   }
 });
-
-// Create temp directory for uploads
-const fs = require('fs');
-const tempDir = path.join(process.cwd(), 'uploads', 'temp');
-if (!fs.existsSync(tempDir)) {
-  fs.mkdirSync(tempDir, { recursive: true });
-}
 
 // Routes
 
