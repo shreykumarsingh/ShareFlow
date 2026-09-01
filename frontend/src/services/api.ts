@@ -11,7 +11,13 @@ import {
 
 // Determine API base URL based on environment
 const getApiBaseUrl = () => {
-  return process.env.REACT_APP_API_URL || 'http://localhost:5001';
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return ''; // Use relative path in production
+  }
+  return 'http://localhost:5001';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -116,7 +122,7 @@ class ApiService {
     try {
       const response = await this.api.post<UploadResponse>('/api/files/upload', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': undefined,
         },
         onUploadProgress: (progressEvent) => {
           if (onProgress && progressEvent.total) {
