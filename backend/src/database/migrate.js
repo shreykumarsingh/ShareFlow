@@ -50,6 +50,18 @@ const createTables = async () => {
       ALTER TABLE files ADD COLUMN IF NOT EXISTS text_content TEXT;
       ALTER TABLE files ADD COLUMN IF NOT EXISTS custom_slug VARCHAR(100);
       ALTER TABLE files ADD COLUMN IF NOT EXISTS is_edit_locked BOOLEAN DEFAULT false;
+
+      -- Enable Row Level Security (RLS) to resolve Supabase security lint issues
+      ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE public.files ENABLE ROW LEVEL SECURITY;
+
+      -- Create access policies for users table
+      DROP POLICY IF EXISTS "Allow backend server full access on users" ON public.users;
+      CREATE POLICY "Allow backend server full access on users" ON public.users USING (true) WITH CHECK (true);
+
+      -- Create access policies for files table
+      DROP POLICY IF EXISTS "Allow backend server full access on files" ON public.files;
+      CREATE POLICY "Allow backend server full access on files" ON public.files USING (true) WITH CHECK (true);
     `);
 
     // Create indexes for better performance
