@@ -53,8 +53,8 @@ const upload = multer({
       return cb(new Error('Filename is required'), false);
     }
     
-    // Check for potentially dangerous extensions
-    const dangerousExtensions = ['.exe', '.bat', '.cmd', '.com', '.scr', '.vbs', '.js', '.jar'];
+    // Check for potentially dangerous binary extensions
+    const dangerousExtensions = ['.exe', '.bat', '.cmd', '.com', '.scr', '.vbs', '.jar', '.sh'];
     const ext = path.extname(file.originalname).toLowerCase();
     
     if (dangerousExtensions.includes(ext)) {

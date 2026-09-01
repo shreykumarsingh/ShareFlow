@@ -28,6 +28,14 @@ const DragDropZone: React.FC<DragDropZoneProps> = ({
     [onFilesSelected]
   );
 
+  const parseAcceptProp = (acceptVal?: string) => {
+    if (!acceptVal || acceptVal === '*' || acceptVal === '*/*') return undefined;
+    if (acceptVal.includes('/')) {
+      return { [acceptVal]: [] };
+    }
+    return undefined;
+  };
+
   const {
     getRootProps,
     getInputProps,
@@ -35,7 +43,7 @@ const DragDropZone: React.FC<DragDropZoneProps> = ({
     isDragReject,
   } = useDropzone({
     onDrop,
-    accept: accept ? { [accept]: [] } : undefined,
+    accept: parseAcceptProp(accept),
     maxFiles,
     maxSize,
     disabled,
