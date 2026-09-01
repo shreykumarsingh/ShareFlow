@@ -19,8 +19,20 @@
       "dest": "backend/src/server.js"
     },
     {
+      "src": "/static/(.*)",
+      "dest": "frontend/build/static/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "frontend/build/favicon.ico"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "frontend/build/manifest.json"
+    },
+    {
       "src": "/(.*)",
-      "dest": "frontend/$1"
+      "dest": "frontend/build/index.html"
     }
   ]
 }
