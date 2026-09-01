@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
-import { FileText, Upload, Download, Link2, Copy, Eye, Trash2, LayoutDashboard, Clock } from 'lucide-react';
+import { FileText, Upload, Download, Link2, Copy, Eye, Trash2, LayoutDashboard, Clock, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DragDropZone from '../components/Upload/DragDropZone';
 import apiService from '../services/api';
@@ -285,30 +285,36 @@ const DashboardPage: React.FC = () => {
           {/* Expandable Text Notes Panel */}
           {showTextNotes && (
             <div className="mb-6 p-6 bg-slate-50 rounded-2xl border border-slate-200 animate-fade-in-up">
-              <label className="flex items-center text-xs font-bold text-slate-800 mb-2">
-                <FileText className="w-4 h-4 text-blue-600 mr-2" />
-                <span>Text Notes / Code Snippets</span>
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="flex items-center text-xs font-bold text-slate-800">
+                  <FileText className="w-4 h-4 text-blue-600 mr-2" />
+                  <span>Text Notes / Code Snippets</span>
+                </label>
+                <span className="text-[11px] text-slate-400">Optional text note content</span>
+              </div>
               <textarea
                 value={textContent}
                 onChange={(e) => setTextContent(e.target.value)}
-                placeholder="Paste notes, instructions, or code snippets to share together with your uploaded files, or click 'Share Note Link Only' below..."
+                placeholder="Type or paste text notes, instructions, or code snippets here... Click 'Save Note & Create Link' to share immediately, or drop files below to attach."
                 rows={4}
                 className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-xs text-slate-900 placeholder-slate-400 resize-y shadow-sm mb-3"
               />
-              {textContent.trim() && (
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={handleTextNoteOnlySubmit}
-                    disabled={isUploading}
-                    className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-all disabled:opacity-50"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>Generate Share Link for Text Note Only</span>
-                  </button>
-                </div>
-              )}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+                <p className="text-[11px] text-slate-500 font-medium">
+                  {textContent.trim() 
+                    ? '💡 Tip: Click "Save Note & Create Link" below or drop files below to attach this note to your files.' 
+                    : '💡 Type your note above and click "Save Note & Create Link".'}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleTextNoteOnlySubmit}
+                  disabled={isUploading || !textContent.trim()}
+                  className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-all disabled:opacity-40 shrink-0"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save Note & Create Link</span>
+                </button>
+              </div>
             </div>
           )}
 
