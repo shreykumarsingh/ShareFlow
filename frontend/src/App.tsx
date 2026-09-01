@@ -10,7 +10,7 @@ import DownloadPage from './pages/DownloadPage';
 import DashboardPage from './pages/DashboardPage';
 import './App.css';
 
-const clerkPubKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY;
+const clerkPubKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5vdWdoLWVncmV0LTgyNC5jbGVyay5hY2NvdW50cy5kZXYk';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
