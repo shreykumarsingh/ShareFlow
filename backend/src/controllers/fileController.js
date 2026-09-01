@@ -71,16 +71,22 @@ const uploadFile = async (req, res, next) => {
       mimeType = 'text/plain';
       sizeBytes = Buffer.byteLength(req.body.text_content, 'utf8');
 
-      // Create physical note file in local uploads
+      // Create physical note file in writable uploads directory (/tmp on Vercel)
       const fs = require('fs');
       const path = require('path');
-      const localUploadDir = process.env.UPLOAD_DIR || './uploads';
-      if (!fs.existsSync(localUploadDir)) {
-        fs.mkdirSync(localUploadDir, { recursive: true });
+      const os = require('os');
+      const localUploadDir = process.env.VERCEL ? os.tmpdir() : (process.env.UPLOAD_DIR || './uploads');
+      try {
+        if (!fs.existsSync(localUploadDir)) {
+          fs.mkdirSync(localUploadDir, { recursive: true });
+        }
+        const notePath = path.join(localUploadDir, storedName);
+        fs.writeFileSync(notePath, req.body.text_content, 'utf8');
+        storagePath = process.env.VERCEL ? notePath : path.relative(process.cwd(), notePath);
+      } catch (e) {
+        console.warn('Physical note creation warning:', e.message);
+        storagePath = storedName;
       }
-      const notePath = path.join(localUploadDir, storedName);
-      fs.writeFileSync(notePath, req.body.text_content, 'utf8');
-      storagePath = path.relative(process.cwd(), notePath);
     }
 
     // Get sanitized user IP
@@ -105,9 +111,15 @@ const uploadFile = async (req, res, next) => {
       expires_at: req.body.expires_at || null
     });
 
-    // Generate shareable link (using custom_slug if available)
+    // Generate shareable link dynamically based on request host or process.env.FRONTEND_URL
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+    const protocol = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
+    const baseUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost')) 
+      ? process.env.FRONTEND_URL 
+      : `${protocol}://${host}`;
+
     const shareSlug = fileRecord.custom_slug || fileRecord.id;
-    const shareableLink = `${process.env.FRONTEND_URL}/download/${shareSlug}`;
+    const shareableLink = `${baseUrl}/download/${shareSlug}`;
 
     res.status(201).json({
       success: true,
@@ -179,9 +191,15 @@ const uploadMultipleFiles = async (req, res, next) => {
           expires_at: req.body.expires_at || null
         });
 
+        const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+        const protocol = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
+        const baseUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost')) 
+          ? process.env.FRONTEND_URL 
+          : `${protocol}://${host}`;
+
         uploadedFiles.push({
           file: fileRecord.toPublicJSON(),
-          shareable_link: `${process.env.FRONTEND_URL}/download/${fileRecord.id}`,
+          shareable_link: `${baseUrl}/download/${fileRecord.id}`,
           can_preview: isPreviewableFile(fileRecord.mime_type)
         });
 

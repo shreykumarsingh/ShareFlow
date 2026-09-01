@@ -1,3 +1,4 @@
+const os = require('os');
 const AWS = require('aws-sdk');
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
@@ -9,7 +10,8 @@ const { ensureUploadDirectory, deleteFile } = require('./fileUtils');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'filesharing';
-const USE_SUPABASE = process.env.USE_SUPABASE === 'true' && SUPABASE_URL && SUPABASE_KEY;
+const isRealSupabaseKey = SUPABASE_KEY && !SUPABASE_KEY.includes('your-supabase');
+const USE_SUPABASE = (process.env.USE_SUPABASE === 'true' || (process.env.VERCEL && SUPABASE_URL && isRealSupabaseKey)) && SUPABASE_URL && isRealSupabaseKey;
 
 let supabase = null;
 if (USE_SUPABASE) {
@@ -25,7 +27,7 @@ const s3 = new AWS.S3({
 
 const BUCKET_NAME = process.env.AWS_S3_BUCKET;
 const USE_S3 = process.env.USE_AWS_S3 === 'true' && BUCKET_NAME;
-const LOCAL_UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads';
+const LOCAL_UPLOAD_DIR = process.env.VERCEL ? os.tmpdir() : (process.env.UPLOAD_DIR || './uploads');
 
 // --- Supabase Storage Helpers ---
 const uploadToSupabase = async (filePath, key, mimetype) => {

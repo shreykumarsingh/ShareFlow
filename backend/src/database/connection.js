@@ -4,6 +4,7 @@ const connectionSimple = require('./connection-simple');
 let pool = null;
 
 const connectDatabase = async () => {
+  if (pool) return pool;
   const dbUrl = process.env.DATABASE_URL;
 
   // Fallback to demo mode if placeholder password is detected

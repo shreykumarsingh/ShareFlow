@@ -72,9 +72,22 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes
+// Ensure database connection middleware for serverless requests
+app.use(async (req, res, next) => {
+  try {
+    await connectDatabase();
+    next();
+  } catch (err) {
+    console.error('Serverless DB connection error:', err);
+    next();
+  }
+});
+
+// API routes (support both /api/* and direct /* paths for Vercel rewrites)
 app.use('/api/files', fileRoutes);
+app.use('/files', fileRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -84,7 +97,7 @@ app.use('*', (req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
-// Database connection and server startup
+// Database connection and server startup (only when run directly as standalone server)
 const startServer = async () => {
   try {
     // Connect to database
@@ -123,6 +136,8 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-startServer();
+if (require.main === module && !process.env.VERCEL) {
+  startServer();
+}
 
 module.exports = app;
