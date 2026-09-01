@@ -122,7 +122,7 @@ const DashboardPage: React.FC = () => {
         toast.success(`Uploaded ${file.name} successfully!`);
       } catch (error: any) {
         console.error(`Error uploading ${file.name}:`, error);
-        toast.error(`Failed to upload ${file.name}`);
+        toast.error(`Failed to upload ${file.name}: ${error.message || ''}`);
       }
     }
 
