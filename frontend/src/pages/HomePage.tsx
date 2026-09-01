@@ -11,7 +11,7 @@ const HomePage: React.FC = () => {
   const [uploadStates, setUploadStates] = useState<FileUploadState[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [expiresInHours, setExpiresInHours] = useState<number>(168);
-  const [showTextNotes, setShowTextNotes] = useState(false);
+  const [showTextNotes, setShowTextNotes] = useState(true);
   const [textContent, setTextContent] = useState('');
 
   const handleFilesSelected = async (selectedFiles: File[]) => {
@@ -221,32 +221,47 @@ const HomePage: React.FC = () => {
 
             {/* Expandable Text Notes Input Area */}
             {showTextNotes && (
-              <div className="mb-6 p-5 bg-slate-50 border border-slate-200 rounded-2xl animate-fade-in-up">
-                <div className="flex items-center justify-between mb-2">
+              <div className="mb-6 p-5 bg-gradient-to-br from-slate-50 to-blue-50/30 rounded-2xl border border-blue-100 shadow-sm animate-fade-in-up">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3">
                   <label className="flex items-center text-xs font-bold text-slate-800">
                     <FileText className="w-4 h-4 text-blue-600 mr-2" />
-                    <span>Text Notes / Code Snippets</span>
+                    <span className="text-sm font-extrabold text-slate-900">Text Notes / Code Snippets (Optional)</span>
                   </label>
-                  <span className="text-[11px] text-slate-400">Optional text note content</span>
+                  <div className="flex items-center space-x-2.5">
+                    <span className="text-[11px] font-medium text-slate-500 bg-white/80 px-2.5 py-1 rounded-lg border border-slate-200">
+                      Timer: <strong className="text-blue-600">{expiresInHours === 1 ? '⚡ 1 Hour' : expiresInHours === 24 ? '📅 24 Hours' : '🗓️ 7 Days'}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleTextNoteOnlySubmit}
+                      disabled={isUploading || !textContent.trim()}
+                      className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-40"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save Note</span>
+                    </button>
+                  </div>
                 </div>
+
                 <textarea
                   value={textContent}
                   onChange={(e) => setTextContent(e.target.value)}
-                  placeholder="Type or paste text notes, instructions, or code snippets here... Click 'Save Note & Create Link' to share immediately, or drop files below to attach."
+                  placeholder="Paste notes, instructions, or code snippets to share together with your uploaded files, or click 'Save Note'..."
                   rows={4}
-                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-xs text-slate-900 placeholder-slate-400 resize-y shadow-sm mb-3"
+                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-xs text-slate-900 placeholder-slate-400 resize-y shadow-inner mb-3 font-mono"
                 />
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 border-t border-slate-200/60">
                   <p className="text-[11px] text-slate-500 font-medium">
                     {textContent.trim() 
-                      ? '💡 Tip: Click "Save Note & Create Link" below or drop files below to attach this note to your files.' 
-                      : '💡 Type your note above and click "Save Note & Create Link".'}
+                      ? '⚡ Click "Save Note" to generate link now, or drop files below to attach this note to your files.' 
+                      : '💡 Type your note above and click "Save Note".'}
                   </p>
                   <button
                     type="button"
                     onClick={handleTextNoteOnlySubmit}
                     disabled={isUploading || !textContent.trim()}
-                    className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-all disabled:opacity-40 shrink-0"
+                    className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-extrabold shadow-md transition-all disabled:opacity-40 shrink-0"
                   >
                     <Save className="w-4 h-4" />
                     <span>Save Note & Create Link</span>
