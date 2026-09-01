@@ -1,0 +1,202 @@
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import {
+  AuthResponse,
+  LoginForm,
+  RegisterForm,
+  UploadResponse,
+  FilesListResponse,
+  ApiError,
+  UploadOptions,
+} from '../types';
+
+// Determine API base URL based on environment
+const getApiBaseUrl = () => {
+  return process.env.REACT_APP_API_URL || 'http://localhost:5001';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+class ApiService {
+  private api: AxiosInstance;
+
+  constructor() {
+    this.api = axios.create({
+      baseURL: API_BASE_URL,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    this.api.interceptors.request.use(
+      (config) => {
+        const token = localStorage.getItem('token');
+        if (token && token !== 'undefined' && token !== 'null') {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    this.api.interceptors.response.use(
+      (response: AxiosResponse) => response,
+      (error: AxiosError) => {
+        if (error.response?.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+        return Promise.reject(this.handleApiError(error));
+      }
+    );
+  }
+
+  private handleApiError(error: AxiosError): ApiError {
+    if (error.response?.data) {
+      return error.response.data as ApiError;
+    }
+    return {
+      error: error.message || 'An unexpected error occurred',
+    };
+  }
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  }
+
+  async login(data: LoginForm): Promise<AuthResponse> {
+    const response = await this.api.post<AuthResponse>('/api/auth/login', data);
+    return response.data;
+  }
+
+  async register(data: RegisterForm): Promise<AuthResponse> {
+    const { confirmPassword, ...registerData } = data;
+    const response = await this.api.post<AuthResponse>('/api/auth/register', registerData);
+    return response.data;
+  }
+
+  async uploadFile(
+    file: File,
+    options: UploadOptions = {},
+    onProgress?: (progress: number) => void
+  ): Promise<UploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    if (options.is_public !== undefined) {
+      formData.append('is_public', options.is_public.toString());
+    }
+    if (options.password) {
+      formData.append('password', options.password);
+    }
+    if (options.expires_at) {
+      formData.append('expires_at', options.expires_at);
+    }
+    if (options.user_id) {
+      formData.append('user_id', options.user_id);
+    }
+    if (options.text_content) {
+      formData.append('text_content', options.text_content);
+    }
+    if (options.custom_slug) {
+      formData.append('custom_slug', options.custom_slug);
+    }
+    if (options.is_edit_locked !== undefined) {
+      formData.append('is_edit_locked', options.is_edit_locked.toString());
+    }
+    if (options.expires_in_hours) {
+      formData.append('expires_in_hours', options.expires_in_hours.toString());
+    }
+
+    try {
+      const response = await this.api.post<UploadResponse>('/api/files/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress(percentCompleted);
+          }
+        },
+      });
+
+      console.log('✅ Upload: Success!', response.data);
+
+      try {
+        const uploadHistory = JSON.parse(localStorage.getItem('recent_uploads') || '[]');
+        uploadHistory.push({
+          id: response.data.file.id,
+          original_name: file.name,
+          mime_type: file.type,
+          size_bytes: file.size,
+          size_formatted: response.data.file.size_formatted,
+          created_at: response.data.file.created_at
+        });
+        if (uploadHistory.length > 10) uploadHistory.splice(0, uploadHistory.length - 10);
+        localStorage.setItem('recent_uploads', JSON.stringify(uploadHistory));
+      } catch (e) {
+        // Ignore localStorage errors
+      }
+
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Upload: Error!', error);
+      const errorMessage = error?.response?.data?.error || error?.message || 'Upload failed';
+      throw new Error(errorMessage);
+    }
+  }
+
+  async getFileInfo(fileId: string, password?: string) {
+    const url = `/api/files/${fileId}/info`;
+
+    if (password) {
+      const response = await this.api.post(url, { password });
+      return response.data;
+    } else {
+      const response = await this.api.get(url);
+      return response.data;
+    }
+  }
+
+  async downloadFile(fileId: string, password?: string): Promise<Blob> {
+    const url = `/api/files/${fileId}/download`;
+
+    const config = {
+      responseType: 'blob' as const,
+    };
+
+    if (password) {
+      const response = await this.api.post(url, { password }, config);
+      return response.data;
+    } else {
+      const response = await this.api.get(url, config);
+      return response.data;
+    }
+  }
+
+  getPreviewUrl(fileId: string, password?: string): string {
+    const params = password ? `?password=${encodeURIComponent(password)}` : '';
+    return `${API_BASE_URL}/api/files/${fileId}/preview${params}`;
+  }
+
+  async getUserFiles(page = 1, limit = 20, userId?: string): Promise<FilesListResponse> {
+    const userParam = userId ? `&user_id=${encodeURIComponent(userId)}` : '';
+    const response = await this.api.get<FilesListResponse>(`/api/files?page=${page}&limit=${limit}${userParam}`);
+    return response.data;
+  }
+
+  async deleteFile(fileId: string, userId?: string) {
+    const userParam = userId ? `?user_id=${encodeURIComponent(userId)}` : '';
+    const response = await this.api.delete(`/api/files/${fileId}${userParam}`);
+    return response.data;
+  }
+}
+
+export const apiService = new ApiService();
+export default apiService;
