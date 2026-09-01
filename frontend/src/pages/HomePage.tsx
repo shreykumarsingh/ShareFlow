@@ -166,7 +166,7 @@ const HomePage: React.FC = () => {
                 <Upload className="w-8 h-8" />
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2 tracking-tight">Upload Your Files</h2>
-              <p className="text-xs sm:text-sm text-slate-500">Drag & drop files or click to browse • Max 5 files • 10 MB per file</p>
+              <p className="text-xs sm:text-sm text-slate-500">Drag & drop files or click to browse • Max 5 files • 100 MB per file</p>
             </div>
 
             {/* Auto Expiry Customizer Bar */}

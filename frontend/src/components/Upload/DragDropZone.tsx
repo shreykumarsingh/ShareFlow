@@ -7,7 +7,7 @@ const DragDropZone: React.FC<DragDropZoneProps> = ({
   onFilesSelected,
   accept,
   maxFiles = 5,
-  maxSize = 10 * 1024 * 1024, // 10MB
+  maxSize = 100 * 1024 * 1024, // 100MB default
   disabled = false,
   children,
 }) => {
@@ -95,7 +95,7 @@ const DragDropZone: React.FC<DragDropZoneProps> = ({
           {isDragActive ? (
             isDragReject ? (
               <p className="text-red-600 font-semibold text-base">
-                Some files are not supported or exceed 10 MB
+                Some files are not supported or exceed {formatFileSize(maxSize)}
               </p>
             ) : (
               <p className="text-blue-600 font-bold text-lg">

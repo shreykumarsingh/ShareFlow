@@ -3,7 +3,17 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
-require('dotenv').config();
+const fs = require('fs');
+
+// Ensure backend .env is loaded regardless of process launch working directory
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
+// Ensure upload directories exist
+const uploadDir = path.resolve(process.env.UPLOAD_DIR || path.join(__dirname, '../uploads'));
+const tempDir = path.join(uploadDir, 'temp');
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
 
 const { connectDatabase } = require('./database/connection');
 const fileRoutes = require('./routes/fileRoutes');

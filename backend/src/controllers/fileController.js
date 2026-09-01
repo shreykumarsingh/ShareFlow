@@ -8,6 +8,21 @@ const {
 } = require('../utils/fileUtils');
 const { isAuthenticated } = require('../middleware/auth');
 
+// Helper to sanitize IP addresses for PostgreSQL INET column
+const getCleanIp = (req) => {
+  let ip = req.headers['x-forwarded-for'] || req.ip || (req.connection ? req.connection.remoteAddress : null);
+  if (typeof ip === 'string') {
+    ip = ip.split(',')[0].trim();
+    if (ip.startsWith('::ffff:')) {
+      ip = ip.replace('::ffff:', '');
+    }
+    if (ip === '::1') {
+      ip = '127.0.0.1';
+    }
+  }
+  return ip || null;
+};
+
 // Upload single file
 const uploadFile = async (req, res, next) => {
   try {
@@ -37,8 +52,8 @@ const uploadFile = async (req, res, next) => {
       });
     }
 
-    // Get user IP
-    const uploadIp = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
+    // Get sanitized user IP
+    const uploadIp = getCleanIp(req);
 
     // Create database record
     const fileRecord = await File.create({
@@ -115,8 +130,8 @@ const uploadMultipleFiles = async (req, res, next) => {
           continue;
         }
 
-        // Get user IP
-        const uploadIp = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
+        // Get sanitized user IP
+        const uploadIp = getCleanIp(req);
 
         // Create database record
         const fileRecord = await File.create({
@@ -252,7 +267,13 @@ const downloadFile = async (req, res, next) => {
       res.setHeader('Content-Disposition', `attachment; filename="${file.original_name}"`);
       res.setHeader('Content-Length', file.size_bytes);
 
-      // Stream file to response
+      // Stream file to response with error handler
+      fileStream.on('error', (err) => {
+        console.error('Stream reading error during download:', err);
+        if (!res.headersSent) {
+          res.status(404).json({ error: 'File not found on storage server' });
+        }
+      });
       fileStream.pipe(res);
 
     } catch (streamError) {
@@ -309,7 +330,13 @@ const previewFile = async (req, res, next) => {
       res.setHeader('Content-Type', file.mime_type);
       res.setHeader('Content-Disposition', 'inline');
 
-      // Stream file to response
+      // Stream file to response with error handler
+      fileStream.on('error', (err) => {
+        console.error('Stream reading error during preview:', err);
+        if (!res.headersSent) {
+          res.status(404).json({ error: 'File not found on storage server' });
+        }
+      });
       fileStream.pipe(res);
 
     } catch (streamError) {

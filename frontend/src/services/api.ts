@@ -29,9 +29,6 @@ class ApiService {
     this.api = axios.create({
       baseURL: API_BASE_URL,
       timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
 
     this.api.interceptors.request.use(
@@ -59,7 +56,14 @@ class ApiService {
 
   private handleApiError(error: AxiosError): ApiError {
     if (error.response?.data) {
-      return error.response.data as ApiError;
+      const data: any = error.response.data;
+      if (typeof data === 'string') {
+        return { error: data };
+      }
+      if (data.error) {
+        return { error: data.error };
+      }
+      return data as ApiError;
     }
     return {
       error: error.message || 'An unexpected error occurred',
@@ -121,9 +125,6 @@ class ApiService {
 
     try {
       const response = await this.api.post<UploadResponse>('/api/files/upload', formData, {
-        headers: {
-          'Content-Type': undefined,
-        },
         onUploadProgress: (progressEvent) => {
           if (onProgress && progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
