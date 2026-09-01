@@ -100,6 +100,7 @@ const HomePage: React.FC = () => {
       }
     }
 
+    setTextContent('');
     setIsUploading(false);
   };
 

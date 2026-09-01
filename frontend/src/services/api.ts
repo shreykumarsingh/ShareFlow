@@ -96,10 +96,11 @@ class ApiService {
     onProgress?: (progress: number) => void
   ): Promise<UploadResponse> {
     const formData = new FormData();
-    if (file) {
-      formData.append('file', file);
+
+    // Text fields MUST be appended BEFORE the file binary stream so Multer populates req.body first
+    if (options.text_content) {
+      formData.append('text_content', options.text_content);
     }
-    
     if (options.is_public !== undefined) {
       formData.append('is_public', options.is_public.toString());
     }
@@ -112,9 +113,6 @@ class ApiService {
     if (options.user_id) {
       formData.append('user_id', options.user_id);
     }
-    if (options.text_content) {
-      formData.append('text_content', options.text_content);
-    }
     if (options.custom_slug) {
       formData.append('custom_slug', options.custom_slug);
     }
@@ -123,6 +121,11 @@ class ApiService {
     }
     if (options.expires_in_hours) {
       formData.append('expires_in_hours', options.expires_in_hours.toString());
+    }
+
+    // Binary file field appended last
+    if (file) {
+      formData.append('file', file);
     }
 
     try {

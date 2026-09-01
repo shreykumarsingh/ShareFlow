@@ -93,6 +93,7 @@ const DashboardPage: React.FC = () => {
       }
     }
 
+    setTextContent('');
     setIsUploading(false);
   };
 
