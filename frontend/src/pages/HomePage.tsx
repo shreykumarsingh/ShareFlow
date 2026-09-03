@@ -15,6 +15,11 @@ const HomePage: React.FC = () => {
   const [textContent, setTextContent] = useState('');
 
   React.useEffect(() => {
+    if (!user?.id) {
+      setUploadStates([]);
+      return;
+    }
+
     try {
       const savedHistory = JSON.parse(localStorage.getItem('recent_uploads') || '[]');
       if (Array.isArray(savedHistory) && savedHistory.length > 0) {
@@ -42,9 +47,13 @@ const HomePage: React.FC = () => {
           }
         }));
         setUploadStates(savedStates);
+      } else {
+        setUploadStates([]);
       }
-    } catch (e) { }
-  }, []);
+    } catch (e) {
+      setUploadStates([]);
+    }
+  }, [user?.id]);
 
   const handleFilesSelected = async (selectedFiles: File[]) => {
     let files = selectedFiles;

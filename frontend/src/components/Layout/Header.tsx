@@ -11,15 +11,13 @@ const Header: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      localStorage.removeItem('recent_uploads');
-      localStorage.removeItem('uploadedFilesHistory');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      localStorage.clear();
       await signOut();
       setIsMenuOpen(false);
       window.location.href = '/';
     } catch (e) {
       console.error('Logout error:', e);
+      localStorage.clear();
       window.location.href = '/';
     }
   };

@@ -16,26 +16,29 @@ const DashboardPage: React.FC = () => {
 
   React.useEffect(() => {
     const fetchUserFiles = async () => {
-      if (user?.id) {
-        try {
-          const response = await apiService.getUserFiles(1, 50, user.id);
-          if (response.success && response.files) {
-            const loadedStates: FileUploadState[] = response.files.map((fileMeta) => ({
-              file: new File([], fileMeta.original_name),
-              progress: { loaded: fileMeta.size_bytes, total: fileMeta.size_bytes, percentage: 100 },
-              status: 'completed',
-              result: {
-                file: fileMeta,
-                shareable_link: `${window.location.origin}/download/${fileMeta.custom_slug || fileMeta.id}`,
-                can_preview: true
-              }
-            }));
-            setAllUploadedFiles(loadedStates);
-            return;
-          }
-        } catch (error) {
-          console.error('Failed to fetch user files:', error);
+      if (!user?.id) {
+        setAllUploadedFiles([]);
+        return;
+      }
+
+      try {
+        const response = await apiService.getUserFiles(1, 50, user.id);
+        if (response.success && response.files) {
+          const loadedStates: FileUploadState[] = response.files.map((fileMeta) => ({
+            file: new File([], fileMeta.original_name),
+            progress: { loaded: fileMeta.size_bytes, total: fileMeta.size_bytes, percentage: 100 },
+            status: 'completed',
+            result: {
+              file: fileMeta,
+              shareable_link: `${window.location.origin}/download/${fileMeta.custom_slug || fileMeta.id}`,
+              can_preview: true
+            }
+          }));
+          setAllUploadedFiles(loadedStates);
+          return;
         }
+      } catch (error) {
+        console.error('Failed to fetch user files:', error);
       }
 
       // Fallback for guest uploads or offline storage
