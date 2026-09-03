@@ -11,7 +11,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET || 'filesharing';
 const isRealSupabaseKey = SUPABASE_KEY && !SUPABASE_KEY.includes('your-supabase');
-const USE_SUPABASE = (process.env.USE_SUPABASE === 'true' || (process.env.VERCEL && SUPABASE_URL && isRealSupabaseKey)) && SUPABASE_URL && isRealSupabaseKey;
+const USE_SUPABASE = (process.env.USE_SUPABASE === 'true' || ((process.env.VERCEL || process.env.RENDER) && SUPABASE_URL && isRealSupabaseKey)) && SUPABASE_URL && isRealSupabaseKey;
 
 let supabase = null;
 if (USE_SUPABASE) {

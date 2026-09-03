@@ -16,6 +16,8 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
+      - key: USE_SUPABASE
+        value: "true"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY
