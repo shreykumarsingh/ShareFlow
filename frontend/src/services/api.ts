@@ -169,12 +169,12 @@ class ApiService {
       let errorMessage = 'Upload failed';
 
       if (error?.response?.status === 413) {
-        errorMessage = 'File too large for Vercel Serverless Function (Max 4.5 MB limit per request). Please upload a smaller file or text note.';
+        errorMessage = 'File too large for server upload limit. Please upload a smaller file or text note.';
       } else if (error?.response?.data) {
         const data = error.response.data;
         if (typeof data === 'string') {
           errorMessage = data.includes('Payload Too Large') 
-            ? 'File too large for Vercel Serverless Function (Max 4.5 MB limit)'
+            ? 'File too large for server limit'
             : data;
         } else if (Array.isArray(data.details)) {
           errorMessage = `${data.error || 'Validation error'}: ${data.details.join(', ')}`;

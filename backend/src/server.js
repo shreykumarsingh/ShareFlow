@@ -11,7 +11,7 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const os = require('os');
 // Ensure upload directories exist safely
-const baseUploadDir = process.env.UPLOAD_DIR || (process.env.VERCEL ? os.tmpdir() : path.join(__dirname, '../uploads'));
+const baseUploadDir = process.env.UPLOAD_DIR || (process.env.RENDER ? os.tmpdir() : path.join(__dirname, '../uploads'));
 const tempDir = path.join(baseUploadDir, 'temp');
 try {
   if (!fs.existsSync(tempDir)) {
@@ -159,7 +159,7 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-if (require.main === module && !process.env.VERCEL) {
+if (require.main === module) {
   startServer();
 }
 

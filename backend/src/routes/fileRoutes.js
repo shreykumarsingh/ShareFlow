@@ -18,7 +18,7 @@ const router = express.Router();
 
 const os = require('os');
 const getTempDir = () => {
-  const targetDir = process.env.VERCEL ? os.tmpdir() : path.join(process.cwd(), 'uploads', 'temp');
+  const targetDir = process.env.RENDER ? os.tmpdir() : path.join(process.cwd(), 'uploads', 'temp');
   try {
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
