@@ -123,7 +123,7 @@ router.use((error, req, res, next) => {
     if (error.code === 'LIMIT_FILE_COUNT') {
       return res.status(413).json({ 
         error: 'Too many files',
-        max_files: 10
+        max_files: 5
       });
     }
     if (error.code === 'LIMIT_UNEXPECTED_FILE') {

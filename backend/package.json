@@ -16,7 +16,7 @@
     "api"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@clerk/clerk-sdk-node": "^4.13.23",
     "@supabase/supabase-js": "^2.78.0",
