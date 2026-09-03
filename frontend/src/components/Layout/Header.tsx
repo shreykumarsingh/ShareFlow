@@ -9,10 +9,19 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    signOut();
-    navigate('/');
-    setIsMenuOpen(false);
+  const handleLogout = async () => {
+    try {
+      localStorage.removeItem('recent_uploads');
+      localStorage.removeItem('uploadedFilesHistory');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      await signOut();
+      setIsMenuOpen(false);
+      window.location.href = '/';
+    } catch (e) {
+      console.error('Logout error:', e);
+      window.location.href = '/';
+    }
   };
 
   const toggleMenu = () => {
