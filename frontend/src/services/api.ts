@@ -11,16 +11,13 @@ import {
 
 // Determine API base URL based on environment
 const getApiBaseUrl = () => {
-  if (process.env.REACT_APP_API_URL && !process.env.REACT_APP_API_URL.includes('localhost')) {
+  if (process.env.REACT_APP_API_URL) {
     return process.env.REACT_APP_API_URL;
   }
   if (process.env.REACT_APP_PROD_API_URL) {
     return process.env.REACT_APP_PROD_API_URL;
   }
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return 'https://shareflow-backend.onrender.com';
-  }
-  return process.env.REACT_APP_API_URL || 'http://localhost:5001';
+  return 'http://localhost:5001';
 };
 
 const API_BASE_URL = getApiBaseUrl();
