@@ -181,24 +181,48 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  const handleDeleteFile = async (fileId: string, fileName: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
-      return;
-    }
+  const [fileToDelete, setFileToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-    try {
-      await apiService.deleteFile(fileId, user?.id);
-      
+  const handleDeleteClick = (e: React.MouseEvent, fileId: string, fileName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFileToDelete({ id: fileId, name: fileName });
+  };
+
+  const confirmDeleteFile = async () => {
+    if (!fileToDelete) return;
+    const { id: fileId, name: fileName } = fileToDelete;
+    setIsDeleting(true);
+
+    const removeFromLocalStateAndStorage = () => {
       setAllUploadedFiles((prev) => prev.filter((item) => item.result?.file.id !== fileId));
       
       const recentFiles = JSON.parse(localStorage.getItem('uploadedFilesHistory') || '[]');
       const updatedHistory = recentFiles.filter((item: any) => item.id !== fileId);
       localStorage.setItem('uploadedFilesHistory', JSON.stringify(updatedHistory));
 
-      toast.success(`Deleted "${fileName}" successfully!`);
+      const savedUploads = JSON.parse(localStorage.getItem('recent_uploads') || '[]');
+      const updatedUploads = savedUploads.filter((item: any) => item.id !== fileId);
+      localStorage.setItem('recent_uploads', JSON.stringify(updatedUploads));
+    };
+
+    try {
+      await apiService.deleteFile(fileId, user?.id);
+      removeFromLocalStateAndStorage();
+      toast.success(`Deleted "${fileName}" successfully!`, { duration: 5000 });
     } catch (error: any) {
       console.error('Failed deleting file:', error);
-      toast.error(error.error || error.message || 'Failed to delete file');
+      const errMessage = error.error || error.message || '';
+      if (error.status === 404 || errMessage.includes('404') || errMessage.toLowerCase().includes('not found')) {
+        removeFromLocalStateAndStorage();
+        toast.success(`Removed "${fileName}"!`, { duration: 5000 });
+      } else {
+        toast.error(errMessage || 'Failed to delete file', { duration: 5000 });
+      }
+    } finally {
+      setIsDeleting(false);
+      setFileToDelete(null);
     }
   };
 
@@ -482,7 +506,7 @@ const DashboardPage: React.FC = () => {
                       </button>
 
                       <button
-                        onClick={() => handleDeleteFile(state.result!.file.id, state.result!.file.original_name)}
+                        onClick={(e) => handleDeleteClick(e, state.result!.file.id, state.result!.file.original_name)}
                         className="flex items-center space-x-1 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-semibold transition-all"
                         title="Delete File"
                       >
@@ -497,6 +521,48 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modern Custom Delete Confirmation Modal */}
+      {fileToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-100 shadow-2xl space-y-6">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-extrabold text-slate-900">Delete File?</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Are you sure you want to permanently delete <strong className="text-slate-800">"{fileToDelete.name}"</strong>? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setFileToDelete(null)}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteFile}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-md disabled:opacity-50 flex items-center justify-center space-x-1.5"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Yes, Delete</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

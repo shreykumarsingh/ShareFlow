@@ -1,11 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Download, Eye, Lock, AlertCircle, FileText, Image, Video, Copy, ShieldCheck } from 'lucide-react';
+import { useUser } from '@clerk/clerk-react';
+import { Download, Eye, Lock, AlertCircle, FileText, Image, Video, Copy, ShieldCheck, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import apiService from '../services/api';
 import { FileMetadata } from '../types';
 
 const DownloadPage: React.FC = () => {
+  const { user } = useUser();
   const { id } = useParams<{ id: string }>();
   const [file, setFile] = useState<FileMetadata | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,6 +60,45 @@ const DownloadPage: React.FC = () => {
     } catch (error: any) {
       toast.error('Download failed');
       setDownloading(false);
+    }
+  };
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const confirmDeleteFile = async () => {
+    setIsDeleting(true);
+    const targetId = file?.id || id!;
+    const removeFromStorage = () => {
+      const savedHistory = JSON.parse(localStorage.getItem('recent_uploads') || '[]');
+      localStorage.setItem('recent_uploads', JSON.stringify(savedHistory.filter((item: any) => item.id !== targetId)));
+
+      const recentFiles = JSON.parse(localStorage.getItem('uploadedFilesHistory') || '[]');
+      localStorage.setItem('uploadedFilesHistory', JSON.stringify(recentFiles.filter((item: any) => item.id !== targetId)));
+    };
+
+    try {
+      await apiService.deleteFile(targetId, user?.id);
+      removeFromStorage();
+      toast.success(`Deleted "${file?.original_name || 'File'}" successfully!`, { duration: 5000 });
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2500);
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      const errMessage = error.error || error.message || '';
+      if (error.status === 404 || errMessage.includes('404') || errMessage.toLowerCase().includes('not found')) {
+        removeFromStorage();
+        toast.success(`File was already deleted.`, { duration: 5000 });
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2500);
+      } else {
+        toast.error(errMessage || 'Failed to delete file', { duration: 5000 });
+      }
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -206,6 +248,17 @@ const DownloadPage: React.FC = () => {
                     <Eye className="h-4 w-4" />
                     <span>Preview File</span>
                   </button>
+
+                  {(!file?.is_edit_locked || (user?.id && file?.user_id === user?.id)) && (
+                    <button
+                      onClick={() => setShowDeleteModal(true)}
+                      className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-6 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 transition-all shadow-sm"
+                      title="Delete File"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span>Delete File</span>
+                    </button>
+                  )}
                 </div>
 
                 {file.expires_at && (
@@ -218,6 +271,48 @@ const DownloadPage: React.FC = () => {
           ) : null}
         </div>
       </div>
+
+      {/* Modern Custom Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-100 shadow-2xl space-y-6">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-extrabold text-slate-900">Delete Shared File?</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Are you sure you want to permanently delete <strong className="text-slate-800">"{file?.original_name || 'this file'}"</strong>? Access to this share link will be revoked.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteFile}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-md disabled:opacity-50 flex items-center justify-center space-x-1.5"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Yes, Delete</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

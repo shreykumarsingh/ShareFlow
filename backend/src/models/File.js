@@ -90,6 +90,9 @@ class File {
 
       return result.rows.length > 0 ? new File(result.rows[0]) : null;
     } catch (error) {
+      if (error.code === '22P02') {
+        return null;
+      }
       throw error;
     }
   }

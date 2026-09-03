@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
-import { Link2, Shield, Clock, CheckCircle, Copy, Eye, Zap, Sparkles, FileText, Save } from 'lucide-react';
+import { Link2, Shield, Clock, CheckCircle, Copy, Eye, Zap, Sparkles, FileText, Save, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DragDropZone from '../components/Upload/DragDropZone';
 import apiService from '../services/api';
@@ -43,7 +43,7 @@ const HomePage: React.FC = () => {
         }));
         setUploadStates(savedStates);
       }
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   const handleFilesSelected = async (selectedFiles: File[]) => {
@@ -65,7 +65,7 @@ const HomePage: React.FC = () => {
     // Upload files one by one
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      
+
       try {
         setUploadStates((prev) =>
           prev.map((state, index) =>
@@ -85,12 +85,12 @@ const HomePage: React.FC = () => {
               prev.map((state, index) =>
                 index === i
                   ? {
-                      ...state,
-                      progress: {
-                        ...state.progress,
-                        percentage,
-                      },
-                    }
+                    ...state,
+                    progress: {
+                      ...state.progress,
+                      percentage,
+                    },
+                  }
                   : state
               )
             );
@@ -101,17 +101,42 @@ const HomePage: React.FC = () => {
           prev.map((state, index) =>
             index === i
               ? {
-                  ...state,
-                  status: 'completed',
-                  result: {
-                    file: response.file,
-                    shareable_link: response.shareable_link,
-                    can_preview: response.can_preview,
-                  },
-                }
+                ...state,
+                status: 'completed',
+                result: {
+                  file: response.file,
+                  shareable_link: response.shareable_link,
+                  can_preview: response.can_preview,
+                },
+              }
               : state
           )
         );
+
+        // Save to local storage history
+        const savedHistory = JSON.parse(localStorage.getItem('recent_uploads') || '[]');
+        savedHistory.unshift({
+          id: response.file.id,
+          original_name: response.file.original_name,
+          mime_type: response.file.mime_type,
+          size_bytes: response.file.size_bytes,
+          size_formatted: response.file.size_formatted,
+          text_content: response.file.text_content,
+          shareable_link: response.shareable_link,
+          created_at: response.file.created_at,
+          expires_at: response.file.expires_at
+        });
+        localStorage.setItem('recent_uploads', JSON.stringify(savedHistory.slice(0, 50)));
+
+        const recentFiles = JSON.parse(localStorage.getItem('uploadedFilesHistory') || '[]');
+        recentFiles.unshift({
+          id: response.file.id,
+          original_name: response.file.original_name,
+          shareable_link: response.shareable_link,
+          size_formatted: response.file.size_formatted,
+          created_at: response.file.created_at
+        });
+        localStorage.setItem('uploadedFilesHistory', JSON.stringify(recentFiles.slice(0, 50)));
 
         toast.success(`Uploaded ${file.name} successfully!`);
       } catch (error: any) {
@@ -120,10 +145,10 @@ const HomePage: React.FC = () => {
           prev.map((state, index) =>
             index === i
               ? {
-                  ...state,
-                  status: 'error',
-                  error: error.message || 'Upload failed',
-                }
+                ...state,
+                status: 'error',
+                error: error.message || 'Upload failed',
+              }
               : state
           )
         );
@@ -165,6 +190,31 @@ const HomePage: React.FC = () => {
       };
 
       setUploadStates((prev) => [completedState, ...prev]);
+      
+      const savedHistory = JSON.parse(localStorage.getItem('recent_uploads') || '[]');
+      savedHistory.unshift({
+        id: response.file.id,
+        original_name: response.file.original_name,
+        mime_type: response.file.mime_type,
+        size_bytes: response.file.size_bytes,
+        size_formatted: response.file.size_formatted,
+        text_content: response.file.text_content,
+        shareable_link: response.shareable_link,
+        created_at: response.file.created_at,
+        expires_at: response.file.expires_at
+      });
+      localStorage.setItem('recent_uploads', JSON.stringify(savedHistory.slice(0, 50)));
+
+      const recentFiles = JSON.parse(localStorage.getItem('uploadedFilesHistory') || '[]');
+      recentFiles.unshift({
+        id: response.file.id,
+        original_name: response.file.original_name,
+        shareable_link: response.shareable_link,
+        size_formatted: response.file.size_formatted,
+        created_at: response.file.created_at
+      });
+      localStorage.setItem('uploadedFilesHistory', JSON.stringify(recentFiles.slice(0, 50)));
+
       setTextContent('');
       toast.success('Text note created & share link generated!');
     } catch (error: any) {
@@ -172,6 +222,51 @@ const HomePage: React.FC = () => {
       toast.error(error.message || 'Failed to share text note');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const [fileToDelete, setFileToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteClick = (e: React.MouseEvent, fileId: string, fileName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFileToDelete({ id: fileId, name: fileName });
+  };
+
+  const confirmDeleteFile = async () => {
+    if (!fileToDelete) return;
+    const { id: fileId, name: fileName } = fileToDelete;
+    setIsDeleting(true);
+
+    const removeFromLocalStateAndStorage = () => {
+      setUploadStates((prev) => prev.filter((item) => item.result?.file.id !== fileId));
+
+      const savedHistory = JSON.parse(localStorage.getItem('recent_uploads') || '[]');
+      const updatedHistory = savedHistory.filter((item: any) => item.id !== fileId);
+      localStorage.setItem('recent_uploads', JSON.stringify(updatedHistory));
+
+      const recentFiles = JSON.parse(localStorage.getItem('uploadedFilesHistory') || '[]');
+      const updatedRecent = recentFiles.filter((item: any) => item.id !== fileId);
+      localStorage.setItem('uploadedFilesHistory', JSON.stringify(updatedRecent));
+    };
+
+    try {
+      await apiService.deleteFile(fileId, user?.id);
+      removeFromLocalStateAndStorage();
+      toast.success(`Deleted "${fileName}" successfully!`, { duration: 5000 });
+    } catch (error: any) {
+      console.error('Failed deleting file:', error);
+      const errMessage = error.error || error.message || '';
+      if (error.status === 404 || errMessage.includes('404') || errMessage.toLowerCase().includes('not found')) {
+        removeFromLocalStateAndStorage();
+        toast.success(`Removed "${fileName}"!`, { duration: 5000 });
+      } else {
+        toast.error(errMessage || 'Failed to delete file', { duration: 5000 });
+      }
+    } finally {
+      setIsDeleting(false);
+      setFileToDelete(null);
     }
   };
 
@@ -285,8 +380,8 @@ const HomePage: React.FC = () => {
 
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 border-t border-slate-200/60">
                   <p className="text-[11px] text-slate-500 font-medium">
-                    {textContent.trim() 
-                      ? '⚡ Click "Save Note" to generate link now, or drop files below to attach this note to your files.' 
+                    {textContent.trim()
+                      ? '⚡ Click "Save Note" to generate link now, or drop files below to attach this note to your files.'
                       : '💡 Type your note above and click "Save Note".'}
                   </p>
                   <button
@@ -313,33 +408,30 @@ const HomePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setExpiresInHours(1)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                    expiresInHours === 1
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${expiresInHours === 1
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
                       : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-100/80'
-                  }`}
+                    }`}
                 >
                   ⚡ 1 Hour
                 </button>
                 <button
                   type="button"
                   onClick={() => setExpiresInHours(24)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                    expiresInHours === 24
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${expiresInHours === 24
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
                       : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-100/80'
-                  }`}
+                    }`}
                 >
                   📅 24 Hours (1 Day)
                 </button>
                 <button
                   type="button"
                   onClick={() => setExpiresInHours(168)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                    expiresInHours === 168
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${expiresInHours === 168
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
                       : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-100/80'
-                  }`}
+                    }`}
                 >
                   🗓️ 7 Days (Max)
                 </button>
@@ -347,7 +439,7 @@ const HomePage: React.FC = () => {
             </div>
 
             <div className="relative">
-              <DragDropZone 
+              <DragDropZone
                 onFilesSelected={handleFilesSelected}
                 maxFiles={5}
                 disabled={isUploading}
@@ -378,7 +470,7 @@ const HomePage: React.FC = () => {
 
             <div className="space-y-4">
               {uploadStates.map((state, index) => (
-                <div 
+                <div
                   key={index}
                   className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-5 hover:border-blue-300 transition-colors shadow-sm"
                 >
@@ -395,7 +487,7 @@ const HomePage: React.FC = () => {
                       {state.status === 'uploading' && (
                         <div className="mt-3">
                           <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                            <div 
+                            <div
                               className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full transition-all duration-300"
                               style={{ width: `${state.progress.percentage}%` }}
                             ></div>
@@ -425,6 +517,15 @@ const HomePage: React.FC = () => {
                           <Eye className="w-3.5 h-3.5" />
                           <span>View Page</span>
                         </button>
+
+                        <button
+                          onClick={(e) => handleDeleteClick(e, state.result!.file.id, state.result!.file.original_name)}
+                          className="flex items-center space-x-1.5 px-3.5 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200/80 rounded-xl text-xs font-bold transition-all shadow-sm"
+                          title="Delete File"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete</span>
+                        </button>
                       </div>
                     )}
 
@@ -448,13 +549,13 @@ const HomePage: React.FC = () => {
             </div>
             <h3 className="text-lg font-black text-slate-900 mb-2">Encrypted & Private</h3>
             <p className="text-xs text-slate-600 leading-relaxed font-normal">
-              Your files are stored securely with database encryption. Automated expiry guarantees maximum privacy protection. 🔒
+              Your files and text notes are stored with military-grade encryption and password security. 🔒
             </p>
           </div>
 
           <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
             <div className="bg-blue-50 text-blue-600 border border-blue-100 rounded-2xl p-4 w-fit mb-6 group-hover:scale-110 transition-transform">
-              <Link2 className="h-7 w-7" />
+              <Zap className="h-7 w-7" />
             </div>
             <h3 className="text-lg font-black text-slate-900 mb-2">Instant Sharing</h3>
             <p className="text-xs text-slate-600 leading-relaxed font-normal">
@@ -473,6 +574,48 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modern Custom Delete Confirmation Modal */}
+      {fileToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-100 shadow-2xl space-y-6">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-extrabold text-slate-900">Delete Uploaded File?</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Are you sure you want to permanently delete <strong className="text-slate-800">"{fileToDelete.name}"</strong>? This file will be removed from online storage.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setFileToDelete(null)}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteFile}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-md disabled:opacity-50 flex items-center justify-center space-x-1.5"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Yes, Delete</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
