@@ -27,6 +27,15 @@ const connectDatabase = async () => {
     client.release();
 
     console.log('✅ Supabase PostgreSQL connected successfully');
+    
+    // Auto-run schema migrations to ensure tables exist
+    try {
+      const { createTables } = require('./migrate');
+      await createTables();
+    } catch (migErr) {
+      console.warn('Auto-migration warning:', migErr.message);
+    }
+
     return pool;
   } catch (error) {
     console.error('⚠️ Could not connect to Supabase PostgreSQL:', error.message);
