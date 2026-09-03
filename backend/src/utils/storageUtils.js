@@ -33,12 +33,29 @@ const LOCAL_UPLOAD_DIR = process.env.VERCEL ? os.tmpdir() : (process.env.UPLOAD_
 const uploadToSupabase = async (filePath, key, mimetype) => {
   try {
     const fileContent = fs.readFileSync(filePath);
-    const { data, error } = await supabase.storage
+    let { data, error } = await supabase.storage
       .from(SUPABASE_BUCKET)
       .upload(key, fileContent, {
         contentType: mimetype,
         upsert: true
       });
+
+    if (error && (error.message?.includes('not found') || error.status === 404 || error.error === 'Bucket not found')) {
+      try {
+        console.log(`📦 Supabase bucket '${SUPABASE_BUCKET}' not found, creating...`);
+        await supabase.storage.createBucket(SUPABASE_BUCKET, { public: true });
+        const retry = await supabase.storage
+          .from(SUPABASE_BUCKET)
+          .upload(key, fileContent, {
+            contentType: mimetype,
+            upsert: true
+          });
+        data = retry.data;
+        error = retry.error;
+      } catch (createErr) {
+        console.warn('Bucket creation failed:', createErr.message);
+      }
+    }
 
     if (error) throw error;
 
@@ -49,7 +66,7 @@ const uploadToSupabase = async (filePath, key, mimetype) => {
     return {
       success: true,
       location: publicUrlData?.publicUrl,
-      key: data.path
+      key: data?.path || key
     };
   } catch (error) {
     console.error('Supabase Storage upload error:', error);
@@ -250,6 +267,7 @@ class StorageManager {
       await deleteLocalFile(localResult.path);
 
       if (supabaseResult.success) {
+        await deleteLocalFile(localResult.path);
         return {
           success: true,
           storageType: 'supabase',
@@ -257,7 +275,13 @@ class StorageManager {
           location: supabaseResult.location
         };
       } else {
-        return supabaseResult;
+        console.warn('⚠️ Supabase Storage upload failed, falling back to local storage:', supabaseResult.error);
+        return {
+          success: true,
+          storageType: 'local',
+          storagePath: localResult.relativePath,
+          location: localResult.path
+        };
       }
     } else if (this.useS3) {
       const localResult = await storeFileLocally(file, storedName);

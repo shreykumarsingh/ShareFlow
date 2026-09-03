@@ -138,22 +138,24 @@ class ApiService {
       console.log('✅ Upload: Success!', response.data);
 
       try {
-        const uploadHistory = JSON.parse(localStorage.getItem('recent_uploads') || '[]');
-        const newEntry = {
-          id: response.data.file.id,
-          original_name: response.data.file.original_name || (file ? file.name : 'shared_note.txt'),
-          mime_type: response.data.file.mime_type || (file ? file.type : 'text/plain'),
-          size_bytes: response.data.file.size_bytes || (file ? file.size : 0),
-          size_formatted: response.data.file.size_formatted,
-          text_content: response.data.file.text_content,
-          created_at: response.data.file.created_at,
-          expires_at: response.data.file.expires_at,
-          shareable_link: response.data.shareable_link || `${window.location.origin}/download/${response.data.file.custom_slug || response.data.file.id}`
-        };
-        const filtered = uploadHistory.filter((item: any) => item.id !== newEntry.id);
-        filtered.unshift(newEntry);
-        if (filtered.length > 20) filtered.pop();
-        localStorage.setItem('recent_uploads', JSON.stringify(filtered));
+        if (response.data && response.data.file) {
+          const uploadHistory = JSON.parse(localStorage.getItem('recent_uploads') || '[]');
+          const newEntry = {
+            id: response.data.file.id,
+            original_name: response.data.file.original_name || (file ? file.name : 'shared_note.txt'),
+            mime_type: response.data.file.mime_type || (file ? file.type : 'text/plain'),
+            size_bytes: response.data.file.size_bytes || (file ? file.size : 0),
+            size_formatted: response.data.file.size_formatted,
+            text_content: response.data.file.text_content,
+            created_at: response.data.file.created_at,
+            expires_at: response.data.file.expires_at,
+            shareable_link: response.data.shareable_link || `${window.location.origin}/download/${response.data.file.custom_slug || response.data.file.id}`
+          };
+          const filtered = uploadHistory.filter((item: any) => item.id !== newEntry.id);
+          filtered.unshift(newEntry);
+          if (filtered.length > 20) filtered.pop();
+          localStorage.setItem('recent_uploads', JSON.stringify(filtered));
+        }
       } catch (e) {
         // Ignore localStorage errors
       }

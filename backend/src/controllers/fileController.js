@@ -66,23 +66,24 @@ const uploadFile = async (req, res, next) => {
       sizeBytes = req.file.size;
     } else {
       // Text note only
+      const textToSave = req.body.text_content || '';
       originalName = req.body.original_name || 'shared_note.txt';
       storedName = generateUniqueFilename(originalName);
       mimeType = 'text/plain';
-      sizeBytes = Buffer.byteLength(req.body.text_content, 'utf8');
+      sizeBytes = Buffer.byteLength(textToSave, 'utf8');
 
       // Create physical note file in writable uploads directory (/tmp on Vercel)
       const fs = require('fs');
       const path = require('path');
       const os = require('os');
-      const localUploadDir = process.env.VERCEL ? os.tmpdir() : (process.env.UPLOAD_DIR || './uploads');
+      const localUploadDir = (process.env.VERCEL || process.env.RENDER) ? os.tmpdir() : (process.env.UPLOAD_DIR || './uploads');
       try {
         if (!fs.existsSync(localUploadDir)) {
           fs.mkdirSync(localUploadDir, { recursive: true });
         }
         const notePath = path.join(localUploadDir, storedName);
-        fs.writeFileSync(notePath, req.body.text_content, 'utf8');
-        storagePath = process.env.VERCEL ? notePath : path.relative(process.cwd(), notePath);
+        fs.writeFileSync(notePath, textToSave, 'utf8');
+        storagePath = (process.env.VERCEL || process.env.RENDER) ? notePath : path.relative(process.cwd(), notePath);
       } catch (e) {
         console.warn('Physical note creation warning:', e.message);
         storagePath = storedName;
